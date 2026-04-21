@@ -1,0 +1,15 @@
+node_modules/
+.obsidian/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# Local data (learning records - privacy-first, keep local)
+data/*.json
+data/*.local.*
