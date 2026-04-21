@@ -1,6 +1,9 @@
 node_modules/
 .obsidian/
 
+# Claude Code
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db
