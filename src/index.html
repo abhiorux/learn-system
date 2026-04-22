@@ -2,6 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>学习系统</title>
 <style>
 :root {
@@ -137,6 +138,30 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg);
 .all-done-icon { font-size: 3rem; margin-bottom: 12px; }
 .all-done h2 { font-size: 1.2rem; margin-bottom: 6px; color: var(--done); }
 .all-done p { color: var(--text-muted); font-size: 0.875rem; }
+
+/* ── Mobile adaptation ── */
+@media (max-width: 480px) {
+  .container { padding: 12px 12px 60px; }
+
+  .header h1 { font-size: 1rem; }
+  .btn { min-height: 40px; padding: 8px 12px; font-size: 0.8rem; }
+
+  .stats-bar { gap: 10px; padding: 10px 12px; }
+  .progress-bar { min-width: 80px; }
+  .stat-value { font-size: 0.9rem; }
+
+  .node-header { padding: 12px; }
+  .node-title { font-size: 0.88rem; }
+  .node-desc { font-size: 0.76rem; }
+  .node-id { display: none; }
+
+  .graph-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .graph-svg { min-width: 480px; }
+}
+
+@media (max-width: 360px) {
+  .header-actions .btn:not(:last-child) { display: none; }
+}
 </style>
 </head>
 <body>

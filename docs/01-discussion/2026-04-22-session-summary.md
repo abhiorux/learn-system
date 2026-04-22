@@ -60,13 +60,36 @@ E:\note\learn-system/
 | 暗色主题 | ✅ 已完成 |
 | 图谱视图 | ✅ 已完成 |
 | 笔记功能 | ✅ 已完成 |
-| 移动端适配 | ⬜ 未开始 |
+| 移动端适配 | ✅ 已完成 |
 
-## 待做事项（按优先级）
+### 移动端适配细节
 
-1. **移动端适配** — Responsive CSS（Phase 3 剩余项）
-2. **知识库填充** — 用真实的 OpenGL/Vulkan 资料完善更多节点（长期）
-3. **记忆曲线** — 基于遗忘曲线的复习提醒（Phase 3+）
+- `viewport meta` + 两档 media query（480px / 360px）
+- 节点 ID 小屏隐藏、图谱横向惯性滚动（`-webkit-overflow-scrolling: touch`）
+- 按钮最小高度 40px（触屏友好）
+
+## 今日完成
+
+### Phase 3 ✅ 全部完成
+
+- **移动端适配**：`viewport meta` + 480px/360px 两档媒体查询，图谱横向滑动，节点ID小屏隐藏
+- **知识库填充**：18 节点（k000-k205），覆盖 OpenGL 进阶（k101-k107）+ Vulkan 入门（k200-k205）
+
+### 知识库结构
+
+| 节点段 | 数量 | 内容 |
+|--------|------|------|
+| k000-k004 | 5 | OpenGL 基础链（原有） |
+| k101-k107 | 7 | OpenGL 进阶：UBO、深度/模板、混合、实例化、GS/TS、Shadow、PBR |
+| k200-k205 | 6 | Vulkan 入门：概述、Instance/Device、Swapchain、Command/RP、Desc/Pipeline、同步 |
+
+## 下一步计划
+
+### Phase 4 发布准备（可选）
+
+1. **知识库填充** — 用真实的 OpenGL/Vulkan 资料完善更多节点（长期、YAML 编辑即可）
+2. **记忆曲线提醒** — 基于 `mastery(t) = initial × e^(-t/τ)` 的复习触发逻辑（Phase 3+）
+3. **Phase 4 发布** — GitHub Pages / npm / iframe widget 方案选型
 
 ---
 
