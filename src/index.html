@@ -169,6 +169,28 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg);
 <script src="data.js"></script>
 <script>
 
+// ─── Forgetting Curve ─────────────────────────────────────────────────────
+const TAU = 7; // memory half-life in days
+const REVIEW_THRESHOLD = 0.5; // mastery below this → suggest review
+
+function calcMastery(nodeId) {
+  const ns = getNodeState(nodeId);
+  if (!ns.completedAt) return null;
+  const daysSince = (Date.now() - new Date(ns.completedAt)) / (1000 * 60 * 60 * 24);
+  return Math.exp(-daysSince / TAU);
+}
+
+function getDueReviewIds() {
+  return getCompletedIds().filter(id => {
+    const m = calcMastery(id);
+    return m !== null && m < REVIEW_THRESHOLD;
+  });
+}
+
+function isDueReview(nodeId) {
+  return getDueReviewIds().includes(nodeId);
+}
+
 // ─── State ────────────────────────────────────────────────────────────────
 const STATE_KEY = "ls_v2";
 let view = "list";
@@ -206,6 +228,16 @@ function offsetDate(dateStr, days) { const d = new Date(dateStr); d.setDate(d.ge
 function difficultyStars(n) { return "&#9733;".repeat(n) + "&#9734;".repeat(5 - n); }
 function importanceDots(n) { return "&#9679;".repeat(n) + "&#9675;".repeat(5 - n); }
 
+function masteryBar(nodeId) {
+  const m = calcMastery(nodeId);
+  if (m === null) return '';
+  const pct = Math.round(m * 100);
+  const color = m >= 0.7 ? 'var(--done)' : m >= 0.5 ? 'var(--accent)' : 'var(--warn)';
+  const label = m >= 0.5 ? '掌握度 ' + pct + '%' : '建议复习 · ' + pct + '%';
+  return '<div style="display:flex;align-items:center;gap:6px;margin-top:5px;font-size:0.72rem;color:' + color + '">' +
+    '<div style="flex:1;height:4px;background:var(--border);border-radius:2px"><div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:2px"></div></div>' + label + '</div>';
+}
+
 function getRecommendation(available) {
   if (!available.length) return null;
   return available.slice().sort((a, b) => {
@@ -241,6 +273,7 @@ function render() {
   const pct = total ? Math.round(completed / total * 100) : 0;
   const unlocked = KNOWLEDGE_BASE.filter(n => isUnlocked(n));
   const locked = KNOWLEDGE_BASE.filter(n => !isUnlocked(n));
+  const dueReview = getDueReviewIds();
 
   let html = '';
   html += '<div class="header"><h1>学习系统</h1><div class="header-actions">' +
@@ -250,6 +283,7 @@ function render() {
 
   html += '<div class="stats-bar"><div class="stat"><div class="stat-label">已完成</div><div class="stat-value done">' + completed + '<span class="denom">/' + total + '</span></div></div>' +
 '<div class="stat"><div class="stat-label">连续打卡</div><div class="stat-value">' + streak + '<span class="denom"> 天</span></div></div>' +
+(dueReview.length ? '<div class="stat"><div class="stat-label">待复习</div><div class="stat-value" style="color:var(--warn)">' + dueReview.length + '<span class="denom"> 个</span></div></div>' : '') +
 '<div class="progress-bar"><div class="stat-label">完成进度</div>' +
 '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
 '<div class="progress-label">' + pct + '% · ' + completed + ' / ' + total + '</div></div></div>';
@@ -315,12 +349,15 @@ function nodeCard(node, recommended) {
   return '<div class="node ' + (done ? "done" : "") + ' ' + (locked ? "locked" : "") + (recommended ? " recommend-card" : "") + '" data-id="' + node.id + '">' +
 '<div class="node-header" onclick="toggleExpand(\'' + node.id + '\')">' +
 (recommended ? '<div class="recommend-badge">推荐</div>' : '') +
+(isDueReview(node.id) ? '<div style="background:var(--warn-light);color:var(--warn);font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:4px;flex-shrink:0;margin-top:2px">复习</div>' : '') +
 '<div class="node-toggle">' + (done ? "&#10003;" : (locked ? "&#8211;" : "&#9654;")) + '</div>' +
 '<div class="node-info"><div class="node-title">' + escHtml(node.title) + '</div>' +
 '<div class="node-desc">' + escHtml(node.description || "") + '</div>' +
 '<div class="node-meta"><span title="难度">' + difficultyStars(node.difficulty) + '</span>' +
 '<span title="重要性">' + importanceDots(node.importance) + '</span>' +
-'<span>~' + (node.estimated_minutes || "?") + 'min</span>' + tags + '</div></div>' +
+'<span>~' + (node.estimated_minutes || "?") + 'min</span>' + tags +
+(isDueReview(node.id) ? '<span style="background:var(--warn-light);color:var(--warn);border-radius:4px;padding:1px 6px;font-size:0.68rem;font-weight:600">复习提醒</span>' : '') + '</div>' +
+(done ? masteryBar(node.id) : '') + '</div>' +
 '<div class="node-id">' + node.id + '</div></div>' +
 '<div class="node-body">' + bodyHtml + '</div></div>';
 }
