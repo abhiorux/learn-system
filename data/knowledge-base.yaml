@@ -434,3 +434,175 @@ nodes:
       path: "./courses/vulkan/05-sync/sync.cpp"
   estimated_minutes: 65
   related_nodes: []
+# ── Vulkan 进阶 ──────────────────────────────────────────────
+
+- id: k301
+  title: "Vulkan 纹理与采样器 (Texture & Sampler)"
+  description: "VkImage 创建与内存分配、VkSampler 配置（过滤/各向异性/mipmap）、图像布局转换与 барьер"
+  type: concept
+  difficulty: 4
+  importance: 4
+  tags: [vulkan, texture, sampler, image-layout]
+  prerequisites: [k205]
+  resources:
+  - type: doc
+    title: "Vulkan 官方教程 - 纹理映射"
+    url: "https://vulkan-tutorial.com/Generating_Mipmaps"
+  - type: doc
+    title: "Vulkan 官方教程 - 图像视图与采样器"
+    url: "https://vulkan-tutorial.com/Image_view_and_sampler"
+  - type: pitfall
+    title: "图像布局转换遗漏导致采样出黑纹理"
+    common_error: "纹理数据上传完毕但渲染时采样出黑色"
+    cause: "图像在显存中的布局（layout）与采样器期望不匹配，需要显式转换"
+    solution: "使用 vkCmdPipelineBarrier 将图像从 UNDEFINED/TRANSFER_SRC_OPTIMAL 转换到 SHADER_READ_ONLY_OPTIMAL"
+  - type: pitfall
+    title: "staging buffer 未等待 transfer 完成就销毁"
+    common_error: "staging 内存被释放后 transfer 操作读取到垃圾数据"
+    cause: "GPU transfer 命令是异步的，CPU 继续执行不会等待"
+    solution: "用 vkWaitForFences 或 dstAccessMask + pipelineBarrier 确保 transfer 完全写入后再销毁 staging"
+  - type: source
+    title: "纹理加载示例"
+    path: "./courses/vulkan/06-texture/texture.cpp"
+  estimated_minutes: 70
+  related_nodes: [k302]
+
+- id: k302
+  title: "Vulkan 深度图像 (Depth Images)"
+  description: "深度图像格式选择、深度图像视图创建、多渲染遍与深度测试启用"
+  type: concept
+  difficulty: 4
+  importance: 3
+  tags: [vulkan, depth, z-buffer]
+  prerequisites: [k301]
+  resources:
+  - type: doc
+    title: "Vulkan 官方教程 - 深度缓冲区"
+    url: "https://vulkan-tutorial.com/Depth_buffering"
+  - type: pitfall
+    title: "深度格式选择不当导致不支持"
+    common_error: "只请求 D32_SFLOAT 但部分设备不支持，创建 VkImage 时失败"
+    cause: "不同硬件对深度格式支持不同，D32_SFLOAT 不是 universal fallback"
+    solution: "优先尝试 D32_SFLOAT，fallback 到 D24_UNORM_S8_UINT 或 D16_UNORM，用 vkGetPhysicalDeviceFormatProperties 查询"
+  - type: pitfall
+    title: "深度图像未正确清空导致残影"
+    common_error: "渲染后发现旧帧的深度信息残留导致闪烁"
+    cause: "没有在渲染开始前清空深度图像"
+    solution: "在渲染 pass 开始前添加 vkCmdClearDepthStencilImage 或清空 attachment"
+  - type: source
+    title: "深度缓冲示例"
+    path: "./courses/vulkan/07-depth/depth.cpp"
+  estimated_minutes: 50
+  related_nodes: [k303]
+
+- id: k303
+  title: "Vulkan Compute Shader"
+  description: "计算着色器调度、存储图像/缓冲区作为计算输出、计算与渲染的队列同步"
+  type: concept
+  difficulty: 5
+  importance: 3
+  tags: [vulkan, compute, gpgpu, shader]
+  prerequisites: [k302]
+  resources:
+  - type: doc
+    title: "Vulkan 官方教程 - 计算着色器"
+    url: "https://vulkan-tutorial.com/Compute_Shader"
+  - type: pitfall
+    title: "dispatch 组数与着色器期望不匹配"
+    common_error: "全局变量/存储缓冲内容未更新"
+    cause: "dispatch 参数中组数与着色器期望不符，线程未覆盖全部数据"
+    solution: "dispatch 参数必须与 gl_NumWorkGroups 匹配，数据量 = 组数 × 局部大小"
+  - type: pitfall
+    title: "计算与图形队列未正确同步"
+    common_error: "计算结果尚未写完，渲染已经开始读取"
+    cause: "计算命令和渲染命令在同一个队列提交，但未使用信号量/围栏控制执行顺序"
+    solution: "在提交计算命令后插入 VkSemaphore，渲染 pass 等待该信号量"
+  - type: source
+    title: "Compute 粒子示例"
+    path: "./courses/vulkan/08-compute/particle_compute.cpp"
+  estimated_minutes: 90
+  related_nodes: [k304]
+
+- id: k304
+  title: "Vulkan 多遍渲染与延迟渲染 (Multi-pass & Deferred)"
+  description: "G-Buffer 构建、几何/光照分离渲染、渲染通道间图像传递、VK_SUBPASS_DEPENDENCY"
+  type: concept
+  difficulty: 5
+  importance: 3
+  tags: [vulkan, deferred, g-buffer, multi-pass]
+  prerequisites: [k303]
+  resources:
+  - type: doc
+    title: "Vulkan Deferred Rendering (SaschaWillems)"
+    url: "https://github.com/SaschaWillems/Vulkan/blob/master/examples/deferred/deferred.cpp"
+  - type: pitfall
+    title: "G-Buffer 图像布局未在子通道间正确转换"
+    common_error: "第二遍读取 G-Buffer 时仍在 TRANSFER_SRC 布局，采样结果错误"
+    cause: "渲染通道内部的图像布局转换需要通过 subpassDependency 控制"
+    solution: "在创建渲染通道时设置 subpassDependency，指定 srcStageMask/dstStageMask 和 srcAccessMask/dstAccessMask"
+  - type: pitfall
+    title: "描述符集合未在所有相关 pass 前绑定"
+    common_error: "G-Buffer 构建正常，但光照 pass 渲染全黑"
+    cause: "不同 pass 需要不同描述符集合，光照 pass 需要 G-Buffer 纹理但未绑定"
+    solution: "每个 pass 录制前显式绑定该 pass 对应的 descriptorSet"
+  - type: source
+    title: "Deferred 渲染示例"
+    path: "./courses/vulkan/09-deferred/deferred.cpp"
+  estimated_minutes: 120
+  related_nodes: []
+
+# ── OpenGL 进阶补完 ─────────────────────────────────────────
+
+- id: k108
+  title: "延迟渲染 (Deferred Rendering / G-Buffer)"
+  description: "几何通道与光照通道分离、G-Buffer 布局（位置/法线/颜色/深度）、多光源高效渲染"
+  type: concept
+  difficulty: 5
+  importance: 3
+  tags: [opengl, deferred, g-buffer, lighting]
+  prerequisites: [k107]
+  resources:
+  - type: doc
+    title: "LearnOpenGL - 延迟着色"
+    url: "https://learnopengl.com/Advanced-Lighting/Deferred-Shading"
+  - type: pitfall
+    title: "G-Buffer 过大导致显存爆炸"
+    common_error: "RGBA32F 全属性存储导致带宽和显存大幅增加"
+    cause: "高精度格式每像素数据量大，多光源场景下带宽成为瓶颈"
+    solution: "位置从深度重建（减少 1 buffer），法线用 Octahedron 编码压缩到 16bit，颜色用 RGB10_A2"
+  - type: source
+    title: "Deferred G-Buffer 示例"
+    path: "./courses/12-deferred/gbuffer.cpp"
+  estimated_minutes: 100
+  related_nodes: [k109]
+
+- id: k109
+  title: "屏幕空间效果 (SSAO / Bloom / Tone Mapping)"
+  description: "屏幕空间环境光遮蔽、多采样 bloom、后处理色调映射与 HDR"
+  type: concept
+  difficulty: 4
+  importance: 3
+  tags: [ssao, bloom, post-processing, hdr, tonemapping]
+  prerequisites: [k108]
+  resources:
+  - type: doc
+    title: "LearnOpenGL - SSAO"
+    url: "https://learnopengl.com/Advanced-Lighting/SSAO"
+  - type: doc
+    title: "LearnOpenGL - Bloom"
+    url: "https://learnopengl.com/Advanced-Lighting/Bloom"
+  - type: pitfall
+    title: "Bloom 提取阈值设置不当导致场景过曝或无效果"
+    common_error: "HDR 值总是低于阈值，bloom 完全看不到"
+    cause: "brightness = max(color.rgb - threshold, 0) 中阈值过高或光照强度本身不够 HDR"
+    solution: "先在明亮场景中目测采样实际亮度值，用 glUniform1f 实时调参找到合适阈值（通常 0.8~1.0）"
+  - type: pitfall
+    title: "SSAO 采样噪声导致闪动"
+    common_error: "SSAO 效果随视角旋转出现颗粒感闪烁"
+    cause: "使用固定采样方向而非基于噪声核旋转，旋转视角时采样覆盖区域不同"
+    solution: "使用半球采样 + 旋转噪声矩阵，确保样本均匀分布在半球内"
+  - type: source
+    title: "SSAO + Bloom 示例"
+    path: "./courses/13-postfx/ssao_bloom.cpp"
+  estimated_minutes: 90
+  related_nodes: []
